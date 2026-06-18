@@ -14,12 +14,11 @@ class Friend:
     def __eq__(self, other):
         return self.name == other.name
 
-
 class Balance:
-    def __init__(self, balance, first_id, second_id):
-        self.balance = balance
+    def __init__(self, first_id, second_id, balance):
         self.first_id = first_id
         self.second_id = second_id
+        self.balance = balance
 
     def get_friends(self, db):
         first = db.get_friend_by_id(self.first_id)
@@ -33,6 +32,12 @@ class Transaction:
         self.amount = amount
         self.time = time
 
+class Friend_of:
+    def __init__(self, friend: Friend, balance: Balance):
+        self.friend_id = friend.friend_id
+        self.name = friend.name
+        self.balance = balance.balance if self.friend_id == balance.second_id else -balance.balance
+        
 
 class App_ORM:
     def __init__(self):
@@ -105,13 +110,13 @@ class App_ORM:
         self.commit()
         self.close_DB()
 
-    def get_friend_by_id(self, friend_id):
-        sql = "SELECT * FROM friends WHERE friend_id=?"
+    def get_friend_id_by_name(self, name):
+        sql = "SELECT * FROM friends WHERE name=?"
         self.open_DB()
-        self.execute(sql, friend_id)
+        self.execute(sql, name)
         row = self.cursor.fetchone()
         self.close_DB()
-        return Friend(*row) if row else None
+        return row[0] if row else None
 
     def get_friend_by_name(self, name):
         sql = "SELECT * FROM friends WHERE name=?"
@@ -127,7 +132,7 @@ class App_ORM:
             return True
         return False
 
-    def get_friends(self, name):
+    def get_friends_of(self, name):
         sql = "SELECT * FROM friends WHERE name!=?"
         self.open_DB()
         self.execute(sql, name)
@@ -135,6 +140,14 @@ class App_ORM:
         self.close_DB()
         return [Friend(*row) for row in rows]
 
+    # ----------- Balances ----------- #
+    def get_balances_for_friend_id(self, friend_id):
+        sql = "SELECT * FROM balances WHERE friend1_id=? OR friend2_id=?"
+        self.open_DB()
+        self.execute(sql, friend_id, friend_id)
+        rows = self.cursor.fetchall()
+        self.close_DB()
+        return [Balance(*row) for row in rows]
 
 if __name__ == '__main__':
     db = App_ORM()
