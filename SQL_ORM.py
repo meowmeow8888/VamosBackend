@@ -19,6 +19,11 @@ class Balance:
         self.first_id = first_id
         self.second_id = second_id
         self.balance = balance
+    
+    def __eq__(self, other):
+        if not isinstance(other, Balance):
+            return NotImplemented
+        return self.first_id == other.first_id and self.second_id == other.second_id
 
     def get_friends(self, db):
         first = db.get_friend_by_id(self.first_id)
@@ -26,18 +31,22 @@ class Balance:
         return [first, second]
 
 class Transaction:
-    def __init__(self, payer_id, receiver_id, amount, time):
+    def __init__(self, tx_id, payer_id, receiver_id, amount, time=0):
+        self.id = tx_id
         self.payer_id = payer_id
         self.receiver_id = receiver_id
         self.amount = amount
         self.time = time
-
+    
 class Friend_of:
     def __init__(self, friend: Friend, balance: Balance):
-        self.friend_id = friend.friend_id
+        self.id = friend.friend_id
         self.name = friend.name
-        self.balance = balance.balance if self.friend_id == balance.second_id else -balance.balance
-        
+        self.balance = balance.balance if self.id == balance.second_id else -balance.balance
+    
+    def __repr__(self):
+        return f"{self.__dict__}"
+
 
 class App_ORM:
     def __init__(self):
@@ -45,21 +54,21 @@ class App_ORM:
         self.cursor = None
         self._ensure_tables()
 
-    def open_DB(self):
+    def _open_DB(self):
         self.conn = sqlite3.connect(
             "database.db",
             detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
         )
         self.cursor = self.conn.cursor()
 
-    def close_DB(self):
+    def _close_DB(self):
         if self.conn:
             self.conn.close()
 
-    def commit(self):
+    def _commit(self):
         self.conn.commit()
 
-    def execute(self, sql, *argv):
+    def _execute(self, sql, *argv):
         self.cursor.execute(sql, argv)
 
     def _ensure_tables(self):
@@ -93,11 +102,21 @@ class App_ORM:
                 FOREIGN KEY (friend2_id) REFERENCES friends(id)
             );"""
         ]
-        self.open_DB()
+        self._open_DB()
         for sql in sqls:
-            self.execute(sql)
-        self.commit()
-        self.close_DB()
+            self._execute(sql)
+        self._commit()
+        self._close_DB()
+
+    def delete_table(self, table_name):
+        sql = f"DELETE FROM {table_name}"
+        sql2 = "DELETE FROM sqlite_sequence WHERE name=?"
+        self._open_DB()
+        self._execute(sql)
+        self._execute(sql2, table_name)
+        self._commit()
+        self._close_DB()
+        print("deleted "+table_name)
 
     # ----------- Friends ----------- #
     def insert_friend(self, friend: Friend):
@@ -105,25 +124,33 @@ class App_ORM:
             INSERT INTO friends (name)
             VALUES (?)
         """
-        self.open_DB()
-        self.execute(sql, friend.name)
-        self.commit()
-        self.close_DB()
+        self._open_DB()
+        self._execute(sql, friend.name)
+        self._commit()
+        self._close_DB()
+
+    def get_all_ids(self):
+        sql = "SELECT id FROM friends"
+        self._open_DB()
+        self._execute(sql)
+        rows = self.cursor.fetchall()
+        self._close_DB()
+        return [row[0] for row in rows]
 
     def get_friend_id_by_name(self, name):
-        sql = "SELECT * FROM friends WHERE name=?"
-        self.open_DB()
-        self.execute(sql, name)
+        sql = "SELECT id FROM friends WHERE name=?"
+        self._open_DB()
+        self._execute(sql, name)
         row = self.cursor.fetchone()
-        self.close_DB()
+        self._close_DB()
         return row[0] if row else None
 
     def get_friend_by_name(self, name):
         sql = "SELECT * FROM friends WHERE name=?"
-        self.open_DB()
-        self.execute(sql, name)
+        self._open_DB()
+        self._execute(sql, name)
         row = self.cursor.fetchone()
-        self.close_DB()
+        self._close_DB()
         return Friend(*row) if row else None
 
     def friend_exists(self, name):
@@ -134,36 +161,39 @@ class App_ORM:
 
     def get_friends_of(self, name):
         sql = "SELECT * FROM friends WHERE name!=?"
-        self.open_DB()
-        self.execute(sql, name)
+        self._open_DB()
+        self._execute(sql, name)
         rows = self.cursor.fetchall()
-        self.close_DB()
+        self._close_DB()
         return [Friend(*row) for row in rows]
 
     # ----------- Balances ----------- #
     def get_balances_for_friend_id(self, friend_id):
         sql = "SELECT * FROM balances WHERE friend1_id=? OR friend2_id=?"
-        self.open_DB()
-        self.execute(sql, friend_id, friend_id)
+        self._open_DB()
+        self._execute(sql, friend_id, friend_id)
         rows = self.cursor.fetchall()
-        self.close_DB()
+        self._close_DB()
         return [Balance(*row) for row in rows]
 
-if __name__ == '__main__':
-    db = App_ORM()
-    table_name = "friends"
+    def insert_balance(self, balance: Balance):
+        sql = "INSERT INTO balances (friend1_id, friend2_id, balance) VALUES (?, ?, ?)"
+        self._open_DB()
+        self._execute(sql, balance.first_id, balance.second_id, balance.balance)
+        self._commit()
+        self._close_DB()
 
-    db.open_DB()
-    db.execute(f"DELETE FROM {table_name}")
-    db.commit()
-    db.close_DB()
-    print("deleted", table_name)
+    def update_balance(self, friend1_id, friend2_id, amount):
+        sql = "UPDATE balances SET balance=balance+? WHERE friend1_id=? AND friend2_id=?"
+        self._open_DB()
+        self._execute(sql, amount, friend1_id, friend2_id)
+        self._commit()
+        self._close_DB()
 
-    db._ensure_tables()
-
-    db.insert_friend(Friend(0, "Guy Mosseri"))
-    db.insert_friend(Friend(0, "Orr Sarid"))
-    db.insert_friend(Friend(0, "Tamar Price"))
-    db.insert_friend(Friend(0, "Dror Krieze"))
-    db.insert_friend(Friend(0, "Mia shuster"))
-    print("inserted new users")
+    # ----------- Transactions ----------- #
+    def insert_transaction(self, tx: Transaction):
+        sql = "INSERT INTO transactions (payer_id, receiver_id, amount) VALUES (?, ?, ?)"
+        self._open_DB()
+        self._execute(sql, tx.payer_id, tx.receiver_id, tx.amount)
+        self._commit()
+        self._close_DB()

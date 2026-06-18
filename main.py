@@ -1,9 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from SQL_ORM import App_ORM, Friend_of
+from handlers.balance_handler import ensure_balances, get_friends_and_balances, handle_transaction
+from SQL_ORM import App_ORM, Transaction
+from pydantic import BaseModel
+
+class TransactionRequest(BaseModel):
+  senderId: int
+  receiverId: int
+  amount: float
 
 db = App_ORM()
+ensure_balances(db)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -17,7 +26,19 @@ app.add_middleware(
 
 @app.get("/api/friends")
 def api_friends(name):
-    friends = db.get_friends_of(name)
-    balances = db.get_balances_for_friend_id(db.get_friend_id_by_name(name))
-    friends_of = [Friend_of(f, b) for f, b in zip(friends, balances)]
-    return {"friends": friends_of}
+    friends_and_balances = get_friends_and_balances(db, name)
+    return {"friends": friends_and_balances}
+
+@app.get("/api/id")
+def api_id(name):
+    id = db.get_friend_id_by_name(name)
+    return {"id": id}
+
+@app.post("/api/transactions")
+def api_transactions(tx: TransactionRequest):
+    if tx.amount > 0:
+        transaction = Transaction(0, tx.receiverId, tx.senderId, tx.amount)
+    else:
+       transaction = Transaction(0, tx.senderId, tx.receiverId, tx.amount)
+    handle_transaction(db, transaction)
+    return {}
