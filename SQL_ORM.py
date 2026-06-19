@@ -14,12 +14,13 @@ class Friend:
     def __eq__(self, other):
         return self.name == other.name
 
+
 class Balance:
     def __init__(self, first_id, second_id, balance):
         self.first_id = first_id
         self.second_id = second_id
         self.balance = balance
-    
+
     def __eq__(self, other):
         if not isinstance(other, Balance):
             return NotImplemented
@@ -30,6 +31,7 @@ class Balance:
         second = db.get_friend_by_id(self.second_id)
         return [first, second]
 
+
 class Transaction:
     def __init__(self, tx_id, payer_id, receiver_id, amount, time=0):
         self.id = tx_id
@@ -37,15 +39,23 @@ class Transaction:
         self.receiver_id = receiver_id
         self.amount = amount
         self.time = time
-    
+
+
 class Friend_of:
     def __init__(self, friend: Friend, balance: Balance):
         self.id = friend.friend_id
         self.name = friend.name
         self.balance = balance.balance if self.id == balance.second_id else -balance.balance
-    
+
     def __repr__(self):
         return f"{self.__dict__}"
+
+
+class Nickname:
+    def __init__(self, nicker_id, nicked_id, nickname):
+        self.nicker_id = nicker_id
+        self.nicked_id = nicked_id
+        self.nickname = nickname
 
 
 class App_ORM:
@@ -100,6 +110,17 @@ class App_ORM:
             
                 FOREIGN KEY (friend1_id) REFERENCES friends(id),
                 FOREIGN KEY (friend2_id) REFERENCES friends(id)
+            );""",
+            """CREATE TABLE IF NOT EXISTS nicknames (
+                nicker_id INTEGER NOT NULL,
+                nicked_id INTEGER NOT NULL,
+
+                nickname TEXT NOT NULL,
+
+                PRIMARY KEY (nicker_id, nicked_id),
+
+                FOREIGN KEY (nicker_id) REFERENCES friends(id),
+                FOREIGN KEY (nicked_id) REFERENCES friends(id)
             );"""
         ]
         self._open_DB()
@@ -154,10 +175,13 @@ class App_ORM:
         return Friend(*row) if row else None
 
     def friend_exists(self, name):
-        friend = self.get_friend_by_name(name)
-        if friend:
-            return True
-        return False
+        sql = "SELECT EXISTS(SELECT 1 FROM friends WHERE name=?)"
+        self._open_DB()
+        self._execute(sql, name)
+        exists = self.cursor.fetchone()[0] == 1        
+        self._close_DB()
+        return exists
+        
 
     def get_friends_of(self, name):
         sql = "SELECT * FROM friends WHERE name!=?"
@@ -179,7 +203,8 @@ class App_ORM:
     def insert_balance(self, balance: Balance):
         sql = "INSERT INTO balances (friend1_id, friend2_id, balance) VALUES (?, ?, ?)"
         self._open_DB()
-        self._execute(sql, balance.first_id, balance.second_id, balance.balance)
+        self._execute(sql, balance.first_id,
+                      balance.second_id, balance.balance)
         self._commit()
         self._close_DB()
 
@@ -195,5 +220,28 @@ class App_ORM:
         sql = "INSERT INTO transactions (payer_id, receiver_id, amount) VALUES (?, ?, ?)"
         self._open_DB()
         self._execute(sql, tx.payer_id, tx.receiver_id, tx.amount)
+        self._commit()
+        self._close_DB()
+
+    # ----------- Nicknames ----------- #
+    def insert_nickname(self, nickname: Nickname):
+        sql = "INSERT INTO nicknames (nicker_id, nicked_id, nickname) VALUES (?, ?, ?)"
+        self._open_DB()
+        self._execute(sql, nickname.nicker_id, nickname.nicked_id, nickname.nickname)
+        self._commit()
+        self._close_DB()
+
+    def nickname_exists(self, nickname: Nickname):
+        sql = "SELECT EXISTS(SELECT 1 FROM nicknames WHERE nicker_id=? AND nicked_id=?)"
+        self._open_DB()
+        self._execute(sql, nickname.nicker_id, nickname.nicked_id)
+        exists = self.cursor.fetchone()[0] == 1        
+        self._close_DB()
+        return exists
+
+    def update_nickname(self, nickname: Nickname):
+        sql = "UPDATE nicknames SET nickname=? WHERE nicker_id=? AND nicked_id=?"
+        self._open_DB()
+        self._execute(sql, nickname.nickname, nickname.nicker_id, nickname.nicked_id)
         self._commit()
         self._close_DB()

@@ -1,4 +1,4 @@
-from SQL_ORM import Friend, Friend_of, Balance, Transaction, App_ORM
+from SQL_ORM import App_ORM, Friend, Friend_of, Balance, Transaction, Nickname
 
 def get_highers(id, ids):
     highers = []
@@ -38,6 +38,12 @@ def get_my_id(name):
   db = App_ORM()
   return db.get_friend_id_by_name(name)
 
+def handle_nickname(nickname: Nickname):
+  db = App_ORM()
+  if db.nickname_exists(nickname):
+    db.update_nickname(nickname)
+  else:
+    db.insert_nickname(nickname)
 
 if __name__ == '__main__':
   db = App_ORM()
