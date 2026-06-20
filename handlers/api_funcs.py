@@ -1,64 +1,79 @@
 from SQL_ORM import App_ORM, Friend, Friend_of, Balance, Transaction, Nickname
 
+
 def get_highers(id, ids):
     highers = []
     for i in ids:
-      if i > id:
-        highers.append(i)
+        if i > id:
+            highers.append(i)
     return highers
 
-def ensure_balances():
-  db = App_ORM()
-  ids = db.get_all_ids()
-  for id in ids:
-    balances = db.get_balances_for_friend_id(id)
-    highers = get_highers(id, ids)
-    if highers:
-      for missing in highers:
-        balance = Balance(id, missing, 0)
-        if balance not in balances:
-          db.insert_balance(balance)
 
-def get_friends_and_balances(name):
-  db = App_ORM()
-  friends = db.get_friends_of(name)
-  balances = db.get_balances_for_friend_id(db.get_friend_id_by_name(name))
-  friends_of = [Friend_of(f, b) for f, b in zip(friends, balances)]
-  return friends_of
+def ensure_balances():
+    db = App_ORM()
+    ids = db.get_all_ids()
+    for id in ids:
+        balances = db.get_balances_for_friend_id(id)
+        highers = get_highers(id, ids)
+        if highers:
+            for missing in highers:
+                balance = Balance(id, missing, 0)
+                if balance not in balances:
+                    db.insert_balance(balance)
+
+
+def get_friends(name):
+    db = App_ORM()
+    myId = db.get_friend_id_by_name(name)
+    friends = db.get_friends_of(name)
+    balances = db.get_balances_for_friend_id(myId)
+
+    friends_of = []
+    for f, b in zip(friends, balances):
+        if db.nickname_exists(myId, f.friend_id):
+            nickname = db.get_nickname(myId, f.friend_id)
+        else:
+            nickname = Nickname(myId, f.friend_id, "")
+        friends_of.append(Friend_of(f, b, nickname))
+    return friends_of
+
 
 def handle_transaction(tx: Transaction):
-  db = App_ORM()
-  db.insert_transaction(tx)
-  if tx.payer_id > tx.receiver_id:
-    db.update_balance(tx.receiver_id, tx.payer_id, tx.amount)
-  else:
-    db.update_balance(tx.payer_id, tx.receiver_id, -tx.amount)
+    db = App_ORM()
+    db.insert_transaction(tx)
+    if tx.payer_id > tx.receiver_id:
+        db.update_balance(tx.receiver_id, tx.payer_id, tx.amount)
+    else:
+        db.update_balance(tx.payer_id, tx.receiver_id, -tx.amount)
+
 
 def get_my_id(name):
-  db = App_ORM()
-  return db.get_friend_id_by_name(name)
+    db = App_ORM()
+    return db.get_friend_id_by_name(name)
+
 
 def handle_nickname(nickname: Nickname):
-  db = App_ORM()
-  if db.nickname_exists(nickname):
-    db.update_nickname(nickname)
-  else:
-    db.insert_nickname(nickname)
+    db = App_ORM()
+    if db.nickname_exists(nickname.nicker_id, nickname.nicked_id):
+        db.update_nickname(nickname)
+    else:
+        db.insert_nickname(nickname)
+
 
 if __name__ == '__main__':
-  db = App_ORM()
+    db = App_ORM()
 
-  db.delete_table("friends")
-  db.delete_table("balances")
+    db.delete_table("friends")
+    db.delete_table("balances")
 
-  db._ensure_tables()
+    db._ensure_tables()
 
-  db.insert_friend(Friend(0, "Guy Mosseri"))
-  db.insert_friend(Friend(0, "Orr Sarid"))
-  db.insert_friend(Friend(0, "Tamar Price"))
-  db.insert_friend(Friend(0, "Dror Krieze"))
-  db.insert_friend(Friend(0, "Mia shuster"))
-  print("inserted new friends")
-  
-  ensure_balances(db)
-  print("created balances")
+    db.insert_friend(Friend(0, "Guy Mosseri"))
+    db.insert_friend(Friend(0, "Orr Sarid"))
+    db.insert_friend(Friend(0, "Tamar Price"))
+    db.insert_friend(Friend(0, "Dror Krieze"))
+    db.insert_friend(Friend(0, "Mia shuster"))
+    print("inserted new friends")
+
+    ensure_balances(db)
+    print("created balances")

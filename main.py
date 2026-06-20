@@ -11,10 +11,12 @@ class TransactionRequest(BaseModel):
     receiverId: int
     amount: float
 
+
 class NicknameRequest(BaseModel):
     nickerId: int
     nickedId: int
     nickname: str
+
 
 ensure_balances()
 
@@ -31,8 +33,8 @@ app.add_middleware(
 
 @app.get("/api/friends")
 def api_friends(name):
-    friends_and_balances = get_friends_and_balances(name)
-    return {"friends": friends_and_balances}
+    friends = get_friends(name)
+    return {"friends": friends}
 
 
 @app.get("/api/id")
@@ -51,7 +53,9 @@ def api_transactions(tx: TransactionRequest):
     handle_transaction(transaction)
     return {}
 
-@app.get("/api/nickname")
+
+@app.post("/api/nickname")
 def api_nickname(nickname: NicknameRequest):
-    handle_nickname(Nickname(nickname.nickerId, nickname.nickedId, nickname.nickname))
+    handle_nickname(Nickname(nickname.nickerId,
+                    nickname.nickedId, nickname.nickname))
     return {}

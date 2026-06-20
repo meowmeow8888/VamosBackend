@@ -41,21 +41,22 @@ class Transaction:
         self.time = time
 
 
-class Friend_of:
-    def __init__(self, friend: Friend, balance: Balance):
-        self.id = friend.friend_id
-        self.name = friend.name
-        self.balance = balance.balance if self.id == balance.second_id else -balance.balance
-
-    def __repr__(self):
-        return f"{self.__dict__}"
-
-
 class Nickname:
     def __init__(self, nicker_id, nicked_id, nickname):
         self.nicker_id = nicker_id
         self.nicked_id = nicked_id
         self.nickname = nickname
+
+
+class Friend_of:
+    def __init__(self, friend: Friend, balance: Balance, nickname: Nickname):
+        self.id = friend.friend_id
+        self.name = friend.name
+        self.balance = balance.balance if self.id == balance.second_id else -balance.balance
+        self.nickname = nickname.nickname
+
+    def __repr__(self):
+        return f"{self.__dict__}"
 
 
 class App_ORM:
@@ -178,10 +179,9 @@ class App_ORM:
         sql = "SELECT EXISTS(SELECT 1 FROM friends WHERE name=?)"
         self._open_DB()
         self._execute(sql, name)
-        exists = self.cursor.fetchone()[0] == 1        
+        exists = self.cursor.fetchone()[0] == 1
         self._close_DB()
         return exists
-        
 
     def get_friends_of(self, name):
         sql = "SELECT * FROM friends WHERE name!=?"
@@ -227,21 +227,31 @@ class App_ORM:
     def insert_nickname(self, nickname: Nickname):
         sql = "INSERT INTO nicknames (nicker_id, nicked_id, nickname) VALUES (?, ?, ?)"
         self._open_DB()
-        self._execute(sql, nickname.nicker_id, nickname.nicked_id, nickname.nickname)
+        self._execute(sql, nickname.nicker_id,
+                      nickname.nicked_id, nickname.nickname)
         self._commit()
         self._close_DB()
 
-    def nickname_exists(self, nickname: Nickname):
+    def nickname_exists(self, nicker_id, nicked_id):
         sql = "SELECT EXISTS(SELECT 1 FROM nicknames WHERE nicker_id=? AND nicked_id=?)"
         self._open_DB()
-        self._execute(sql, nickname.nicker_id, nickname.nicked_id)
-        exists = self.cursor.fetchone()[0] == 1        
+        self._execute(sql, nicker_id, nicked_id)
+        exists = self.cursor.fetchone()[0] == 1
         self._close_DB()
         return exists
 
     def update_nickname(self, nickname: Nickname):
         sql = "UPDATE nicknames SET nickname=? WHERE nicker_id=? AND nicked_id=?"
         self._open_DB()
-        self._execute(sql, nickname.nickname, nickname.nicker_id, nickname.nicked_id)
+        self._execute(sql, nickname.nickname,
+                      nickname.nicker_id, nickname.nicked_id)
         self._commit()
         self._close_DB()
+
+    def get_nickname(self, nicker_id, nicked_id):
+        sql = "SELECT * FROM nicknames WHERE nicker_id=? AND nicked_id=?"
+        self._open_DB()
+        self._execute(sql, nicker_id, nicked_id)
+        row = self.cursor.fetchone()
+        self._close_DB()
+        return Nickname(*row) if row else None
