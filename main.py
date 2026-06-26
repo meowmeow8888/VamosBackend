@@ -24,7 +24,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://87.71.152.73:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,7 +45,6 @@ def api_id(name):
 
 @app.post("/api/transactions")
 def api_transactions(tx: TransactionRequest):
-    print(tx.senderId, tx.receiverId, tx.amount)
     if tx.amount > 0:
         transaction = Transaction(0, tx.receiverId, tx.senderId, tx.amount)
     else:
