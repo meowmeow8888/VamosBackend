@@ -1,4 +1,5 @@
-from SQL_ORM import App_ORM, Friend, Friend_of, Balance, Transaction, Nickname
+from SQL_ORM import *
+import secrets
 
 
 def get_highers(id, ids):
@@ -58,6 +59,31 @@ def handle_nickname(nickname: Nickname):
         db.update_nickname(nickname)
     else:
         db.insert_nickname(nickname)
+
+
+def create_session(friend_id):
+    session_id = secrets.token_hex(32)
+    session = Session(session_id, friend_id)
+    return session
+
+
+def login(name, password):
+    db = App_ORM()
+    if not db.friend_exists(name):
+        db.insert_friend(Friend(0, name, password))
+    if not db.validate_friend(name, password):
+        return None
+    f_id = db.get_friend_id_by_name(name)
+    session = create_session(f_id)
+    db.insert_session(session)
+    return session.session_id
+
+
+def me(session_id):
+    db = App_ORM()
+    if not db.session_exists(session_id):
+        return None 
+    return db.get_friend_id_from_session(session_id)
 
 
 if __name__ == '__main__':

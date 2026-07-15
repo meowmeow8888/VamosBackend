@@ -4,9 +4,10 @@ import sqlite3
 
 
 class Friend:
-    def __init__(self, friend_id, name):
+    def __init__(self, friend_id, name, password):
         self.friend_id = friend_id
         self.name = name
+        self.password = password
 
     def __str__(self):
         return f"{self.__dict__}"
@@ -59,6 +60,15 @@ class Friend_of:
         return f"{self.__dict__}"
 
 
+class Session:
+    def __init__(self, session_id, friend_id):
+        self.session_id = session_id
+        self.friend_id = friend_id
+
+    def __repr__(self):
+        return f"{self.__dict__}"
+
+
 class App_ORM:
     def __init__(self):
         self.conn = None
@@ -86,7 +96,8 @@ class App_ORM:
         sqls = [
             """CREATE TABLE IF NOT EXISTS friends (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL
+                name TEXT NOT NULL,
+                password TEXT NOT NULL
             );
             """,
             """CREATE TABLE IF NOT EXISTS transactions (
@@ -122,7 +133,13 @@ class App_ORM:
 
                 FOREIGN KEY (nicker_id) REFERENCES friends(id),
                 FOREIGN KEY (nicked_id) REFERENCES friends(id)
-            );"""
+            );""",
+            """CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                friend_id INTEGER NOT NULL,
+                FOREIGN KEY (friend_id) REFERENCES friends(id)
+            );
+            """
         ]
         self._open_DB()
         for sql in sqls:
@@ -143,11 +160,11 @@ class App_ORM:
     # ----------- Friends ----------- #
     def insert_friend(self, friend: Friend):
         sql = """
-            INSERT INTO friends (name)
-            VALUES (?)
+            INSERT INTO friends (name, password)
+            VALUES (?, ?)
         """
         self._open_DB()
-        self._execute(sql, friend.name)
+        self._execute(sql, friend.name, friend.password)
         self._commit()
         self._close_DB()
 
@@ -182,6 +199,14 @@ class App_ORM:
         exists = self.cursor.fetchone()[0] == 1
         self._close_DB()
         return exists
+
+    def validate_friend(self, name, password):
+        sql = "SELECT EXISTS(SELECT 1 FROM friends WHERE name=? AND password=?)"
+        self._open_DB()
+        self._execute(sql, name, password)
+        valid = self.cursor.fetchone()[0] == 1
+        self._close_DB()
+        return valid
 
     def get_friends_of(self, name):
         sql = "SELECT * FROM friends WHERE name!=?"
@@ -255,3 +280,34 @@ class App_ORM:
         row = self.cursor.fetchone()
         self._close_DB()
         return Nickname(*row) if row else None
+
+    # ----------- Sessions ----------- #
+    def insert_session(self, session: Session):
+        sql = "INSERT INTO sessions (session_id, friend_id) VALUES (?, ?)"
+        self._open_DB()
+        self._execute(sql, session.session_id, session.friend_id)
+        self._commit()
+        self._close_DB()
+
+    def session_exists(self, session_id):
+        sql = "SELECT EXISTS(SELECT 1 FROM sessions WHERE session_id=?)"
+        self._open_DB()
+        self._execute(sql, session_id)
+        exists = self.cursor.fetchone()[0] == 1
+        self._close_DB()
+        return exists
+
+    def delete_session(self, session_id):
+        sql = "DELETE FROM sessions WHERE session_id=?"
+        self._open_DB()
+        self._execute(sql, session_id)
+        self._commit()
+        self._close_DB()
+
+    def get_friend_id_from_session(self, session_id):
+        sql = "SELECT friend_id FROM sessions WHERE session_id=?"
+        self._open_DB()
+        self._execute(sql, session_id)
+        row = self.cursor.fetchone()
+        self._close_DB()
+        return row[0] if row else None

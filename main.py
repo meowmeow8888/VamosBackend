@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, HTTPException, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 
 from handlers.api_funcs import *
-from SQL_ORM import App_ORM, Transaction, Nickname
+from SQL_ORM import Transaction, Nickname
 from pydantic import BaseModel
 
 
@@ -21,14 +21,43 @@ class NicknameRequest(BaseModel):
 ensure_balances()
 
 app = FastAPI()
-
+# http://87.71.152.73:5173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://87.71.152.73:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.post("/api/login")
+def api_login(name, password, res: Response):
+    session_id = login(name, password)
+    if not session_id:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    res.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        secure=False,      # True in production with HTTPS
+        samesite="lax",    # or "none" if frontend is on another origin over HTTPS
+        max_age=60 * 60 * 24 * 30,  # 300 days
+    )
+    return {}
+
+
+@app.get("/api/me")
+def me(session_id: str | None = Cookie(default=None)):
+    if session_id is None:
+        raise HTTPException(status_code=401)
+
+    id = me(session_id)
+    if not id:
+        raise HTTPException(status_code=401)
+
+    return {"id": id}
 
 
 @app.get("/api/friends")
