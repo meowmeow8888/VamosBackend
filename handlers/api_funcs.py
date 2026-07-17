@@ -23,18 +23,17 @@ def ensure_balances():
                     db.insert_balance(balance)
 
 
-def get_friends(name):
+def get_friends(id):
     db = App_ORM()
-    myId = db.get_friend_id_by_name(name)
-    friends = db.get_friends_of(name)
-    balances = db.get_balances_for_friend_id(myId)
+    friends = db.get_friends_of(id)
+    balances = db.get_balances_for_friend_id(id)
 
     friends_of = []
     for f, b in zip(friends, balances):
-        if db.nickname_exists(myId, f.friend_id):
-            nickname = db.get_nickname(myId, f.friend_id)
+        if db.nickname_exists(id, f.friend_id):
+            nickname = db.get_nickname(id, f.friend_id)
         else:
-            nickname = Nickname(myId, f.friend_id, "")
+            nickname = Nickname(id, f.friend_id, "")
         friends_of.append(Friend_of(f, b, nickname))
     return friends_of
 
@@ -46,11 +45,6 @@ def handle_transaction(tx: Transaction):
         db.update_balance(tx.receiver_id, tx.payer_id, tx.amount)
     else:
         db.update_balance(tx.payer_id, tx.receiver_id, -tx.amount)
-
-
-def get_my_id(name):
-    db = App_ORM()
-    return db.get_friend_id_by_name(name)
 
 
 def handle_nickname(nickname: Nickname):
@@ -69,8 +63,10 @@ def create_session(friend_id):
 
 def login(name, password):
     db = App_ORM()
+    name = " ".join(name.split())
     if not db.friend_exists(name):
         db.insert_friend(Friend(0, name, password))
+        ensure_balances()
     if not db.validate_friend(name, password):
         return None
     f_id = db.get_friend_id_by_name(name)
@@ -79,27 +75,13 @@ def login(name, password):
     return session.session_id
 
 
+def logout(session_id):
+    db = App_ORM()
+    db.delete_session(session_id)
+
+
 def me(session_id):
     db = App_ORM()
     if not db.session_exists(session_id):
-        return None 
+        return None
     return db.get_friend_id_from_session(session_id)
-
-
-if __name__ == '__main__':
-    db = App_ORM()
-
-    db.delete_table("friends")
-    db.delete_table("balances")
-
-    db._ensure_tables()
-
-    db.insert_friend(Friend(0, "Guy Mosseri"))
-    db.insert_friend(Friend(0, "Orr Sarid"))
-    db.insert_friend(Friend(0, "Tamar Price"))
-    db.insert_friend(Friend(0, "Dror Krieze"))
-    db.insert_friend(Friend(0, "Mia shuster"))
-    print("inserted new friends")
-
-    ensure_balances(db)
-    print("created balances")

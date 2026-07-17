@@ -184,14 +184,6 @@ class App_ORM:
         self._close_DB()
         return row[0] if row else None
 
-    def get_friend_by_name(self, name):
-        sql = "SELECT * FROM friends WHERE name=?"
-        self._open_DB()
-        self._execute(sql, name)
-        row = self.cursor.fetchone()
-        self._close_DB()
-        return Friend(*row) if row else None
-
     def friend_exists(self, name):
         sql = "SELECT EXISTS(SELECT 1 FROM friends WHERE name=?)"
         self._open_DB()
@@ -208,23 +200,15 @@ class App_ORM:
         self._close_DB()
         return valid
 
-    def get_friends_of(self, name):
-        sql = "SELECT * FROM friends WHERE name!=?"
+    def get_friends_of(self, id):
+        sql = "SELECT * FROM friends WHERE id!=?"
         self._open_DB()
-        self._execute(sql, name)
+        self._execute(sql, id)
         rows = self.cursor.fetchall()
         self._close_DB()
         return [Friend(*row) for row in rows]
 
     # ----------- Balances ----------- #
-    def get_balances_for_friend_id(self, friend_id):
-        sql = "SELECT * FROM balances WHERE friend1_id=? OR friend2_id=?"
-        self._open_DB()
-        self._execute(sql, friend_id, friend_id)
-        rows = self.cursor.fetchall()
-        self._close_DB()
-        return [Balance(*row) for row in rows]
-
     def insert_balance(self, balance: Balance):
         sql = "INSERT INTO balances (friend1_id, friend2_id, balance) VALUES (?, ?, ?)"
         self._open_DB()
@@ -232,6 +216,14 @@ class App_ORM:
                       balance.second_id, balance.balance)
         self._commit()
         self._close_DB()
+
+    def get_balances_for_friend_id(self, friend_id):
+        sql = "SELECT * FROM balances WHERE friend1_id=? OR friend2_id=?"
+        self._open_DB()
+        self._execute(sql, friend_id, friend_id)
+        rows = self.cursor.fetchall()
+        self._close_DB()
+        return [Balance(*row) for row in rows]
 
     def update_balance(self, friend1_id, friend2_id, amount):
         sql = "UPDATE balances SET balance=balance+? WHERE friend1_id=? AND friend2_id=?"

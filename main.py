@@ -18,13 +18,28 @@ class NicknameRequest(BaseModel):
     nickname: str
 
 
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
+
+def convert_cookie(session_id):
+    if session_id is None:
+        raise HTTPException(status_code=401)
+
+    id = me(session_id)
+    if not id:
+        raise HTTPException(status_code=401)
+    return id
+
+
 ensure_balances()
 
 app = FastAPI()
-# http://87.71.152.73:5173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173",
+                   "https://7z7crp38-5173.uks1.devtunnels.ms"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,8 +47,8 @@ app.add_middleware(
 
 
 @app.post("/api/login")
-def api_login(name, password, res: Response):
-    session_id = login(name, password)
+def api_login(data: LoginRequest, res: Response):
+    session_id = login(data.name, data.password)
     if not session_id:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -41,39 +56,42 @@ def api_login(name, password, res: Response):
         key="session_id",
         value=session_id,
         httponly=True,
-        secure=False,      # True in production with HTTPS
-        samesite="lax",    # or "none" if frontend is on another origin over HTTPS
-        max_age=60 * 60 * 24 * 30,  # 300 days
+        secure=False,      # True in production with HTTPS, False for localhost
+        # or "none" if frontend is on another origin over HTTPS, lax for localhost
+        samesite="lax",
+        max_age=60 * 60 * 24 * 300,  # 300 days
     )
     return {}
 
 
-@app.get("/api/me")
-def me(session_id: str | None = Cookie(default=None)):
+@app.post("/api/logout")
+def api_logout(session_id: str | None = Cookie(default=None)):
     if session_id is None:
         raise HTTPException(status_code=401)
 
-    id = me(session_id)
-    if not id:
-        raise HTTPException(status_code=401)
+    logout(session_id)
+    return {}
+
+
+@app.get("/api/me")
+def api_me(session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
 
     return {"id": id}
 
 
 @app.get("/api/friends")
-def api_friends(name):
-    friends = get_friends(name)
+def api_friends(session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
+    friends = get_friends(id)
     return {"friends": friends}
 
 
-@app.get("/api/id")
-def api_id(name):
-    id = get_my_id(name)
-    return {"id": id}
-
-
 @app.post("/api/transactions")
-def api_transactions(tx: TransactionRequest):
+def api_transactions(tx: TransactionRequest, session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
     if tx.amount > 0:
         transaction = Transaction(0, tx.receiverId, tx.senderId, tx.amount)
     else:
@@ -83,7 +101,9 @@ def api_transactions(tx: TransactionRequest):
 
 
 @app.post("/api/nickname")
-def api_nickname(nickname: NicknameRequest):
+def api_nickname(nickname: NicknameRequest, session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
     handle_nickname(Nickname(nickname.nickerId,
                     nickname.nickedId, nickname.nickname))
     return {}
