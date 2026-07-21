@@ -4,6 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from handlers.api_funcs import *
 from SQL_ORM import Transaction, Nickname
 from pydantic import BaseModel
+from firebase_admin import messaging
+from handlers.get_topic import user_id_to_topic
+
+
+class MeRequest(BaseModel):
+    token: str
 
 
 class TransactionRequest(BaseModel):
@@ -75,8 +81,10 @@ def api_logout(session_id: str | None = Cookie(default=None)):
 
 
 @app.get("/api/me")
-def api_me(session_id: str | None = Cookie(default=None)):
+def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
+    messaging.subscribe_to_topic([token.token], user_id_to_topic(id))
+    messaging.subscribe_to_topic([token.token], "all")
 
     return {"id": id}
 
