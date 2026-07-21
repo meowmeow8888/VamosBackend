@@ -39,7 +39,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173",
-                   "https://7z7crp38-5173.uks1.devtunnels.ms"],
+                   "https://7z7crp38-5173.uks1.devtunnels.ms",
+                   "https://vamosbrazil.netlify.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,9 +57,9 @@ def api_login(data: LoginRequest, res: Response):
         key="session_id",
         value=session_id,
         httponly=True,
-        secure=False,      # True in production with HTTPS, False for localhost
+        secure=True,      # True in production with HTTPS, False for localhost
         # or "none" if frontend is on another origin over HTTPS, lax for localhost
-        samesite="lax",
+        samesite="none",
         max_age=60 * 60 * 24 * 300,  # 300 days
     )
     return {}
