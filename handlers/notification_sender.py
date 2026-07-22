@@ -24,8 +24,8 @@ class NotificationBuilder:
     def __init__(self):
         self.__notification = Notification()
 
-    def alarm(self, alarm_type: "morning" | "smth else") -> 'NotificationBuilder':
-        self.__notification.title = alarm_type + "alarm!"
+    def alarm(self) -> 'NotificationBuilder':
+        self.__notification.title = "alarm!"
         return self
 
     def with_user_id(self, user_id) -> 'NotificationBuilder':
@@ -36,4 +36,4 @@ class NotificationBuilder:
         return self.__notification
 
 
-NotificationBuilder().with_user_id(2).alarm("morning").build().send()
+NotificationBuilder().with_user_id(2).alarm().build().send()
