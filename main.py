@@ -10,6 +10,7 @@ from SQL_ORM import Transaction, Nickname
 
 import firebase_admin
 from firebase_admin import messaging, credentials
+from firebase_admin.exceptions import FirebaseError
 
 
 class MeRequest(BaseModel):
@@ -95,8 +96,26 @@ def api_logout(session_id: str | None = Cookie(default=None)):
 @app.post("/api/me")
 def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
-    messaging.subscribe_to_topic([token.token], user_id_to_topic(id))
-    messaging.subscribe_to_topic([token.token], "all")
+
+    print(f"DEBUG: Received token: '{token}'")
+    print(f"DEBUG: Token type: {type(token)}")
+
+    if not token.token:
+        return {"error": "No FCM token provided"}
+
+    try:
+        response = messaging.subscribe_to_topic(
+            [token.token], user_id_to_topic(id))
+        response2 = messaging.subscribe_to_topic([token.token], "all")
+
+        if response.failure_count > 0:
+            print(f"Failed to subscribe: {response.errors[0].reason}")
+        if response2.failure_count > 0:
+            print(f"Failed to subscribe: {response.errors[0].reason}")
+
+    except FirebaseError as e:
+        print(f"Firebase Error: {e}")
+        return {"error": str(e)}
 
     return {"id": id}
 
