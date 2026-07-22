@@ -1,11 +1,15 @@
+import os
+import json
 from fastapi import FastAPI, Response, HTTPException, Cookie
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
+from handlers.get_topic import user_id_to_topic
 from handlers.api_funcs import *
 from SQL_ORM import Transaction, Nickname
-from pydantic import BaseModel
-from firebase_admin import messaging
-from handlers.get_topic import user_id_to_topic
+
+import firebase_admin
+from firebase_admin import messaging, credentials
 
 
 class MeRequest(BaseModel):
@@ -37,6 +41,13 @@ def convert_cookie(session_id):
     if not id:
         raise HTTPException(status_code=401)
     return id
+
+
+firebase_creds = json.loads(os.environ.get("FIREBASE_CREDENTIALS"))
+cred = credentials.Certificate(firebase_creds)
+
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
 
 ensure_balances()
