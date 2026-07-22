@@ -81,7 +81,7 @@ def api_logout(session_id: str | None = Cookie(default=None)):
     return {}
 
 
-@app.get("/api/me")
+@app.post("/api/me")
 def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
     messaging.subscribe_to_topic([token.token], user_id_to_topic(id))
