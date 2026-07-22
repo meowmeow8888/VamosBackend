@@ -97,8 +97,8 @@ def api_logout(session_id: str | None = Cookie(default=None)):
 def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
 
-    print(f"DEBUG: Received token: '{token}'")
-    print(f"DEBUG: Token type: {type(token)}")
+    print(f"DEBUG: Received token: '{token.token}'")
+    print(f"DEBUG: Token type: {type(token.token)}")
 
     if not token.token:
         return {"error": "No FCM token provided"}
