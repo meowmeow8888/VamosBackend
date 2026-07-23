@@ -1,6 +1,6 @@
 from SQL_ORM import *
 import secrets
-from notification_sender import NotificationBuilder
+from handlers.notification_sender import NotificationBuilder
 
 
 def get_highers(id, ids):
