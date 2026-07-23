@@ -112,7 +112,7 @@ class App_ORM:
                 amount REAL NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             
-                FOREIGN KEY (payer_id) REFERENCES friends(id),
+                FOREIGN KEY (sender_id) REFERENCES friends(id),
                 FOREIGN KEY (receiver_id) REFERENCES friends(id)
             );""",
             """CREATE TABLE IF NOT EXISTS balances (

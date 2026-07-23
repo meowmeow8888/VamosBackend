@@ -42,7 +42,6 @@ def convert_cookie(session_id):
         raise HTTPException(status_code=401)
     return id
 
-
 firebase_creds = json.loads(os.environ.get("FIREBASE_CREDENTIALS"))
 cred = credentials.Certificate(firebase_creds)
 
