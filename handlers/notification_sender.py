@@ -24,8 +24,9 @@ class NotificationBuilder:
     def __init__(self):
         self.__notification = Notification()
 
-    def alarm(self) -> 'NotificationBuilder':
-        self.__notification.title = "alarm!"
+    def transaction_received(self, sender_name) -> 'NotificationBuilder':
+        self.__notification.title = "New Transaction"
+        self.__notification.body = f"{sender_name} has sent you a new transaction, open the app to accept it"
         return self
 
     def with_user_id(self, user_id) -> 'NotificationBuilder':

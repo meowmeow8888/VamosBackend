@@ -141,16 +141,12 @@ def api_friends(session_id: str | None = Cookie(default=None)):
     return {"friends": friends}
 
 
-@app.post("/api/transactions")
+@app.post("/api/create-transaction")
 def api_transactions(tx: TransactionRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
     print(f"from: {id}, to: {tx.receiverId}, amount: {tx.amount}")
-
-    if tx.amount > 0:
-        transaction = Transaction(0, tx.receiverId, id, tx.amount)
-    else:
-        transaction = Transaction(0, id, tx.receiverId, -tx.amount)
-    handle_transaction(transaction)
+    transaction = Transaction(0, id, tx.receiverId, tx.amount)
+    handle_create_transaction(transaction)
     return {}
 
 

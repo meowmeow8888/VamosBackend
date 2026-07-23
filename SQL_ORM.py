@@ -34,11 +34,12 @@ class Balance:
 
 
 class Transaction:
-    def __init__(self, tx_id, payer_id, receiver_id, amount, time=0):
+    def __init__(self, tx_id, sender_id, receiver_id, amount, status="PENDING", time=0):
         self.id = tx_id
-        self.payer_id = payer_id
+        self.sender_id = sender_id
         self.receiver_id = receiver_id
         self.amount = amount
+        self.status = status
         self.time = time
 
 
@@ -103,8 +104,10 @@ class App_ORM:
             """CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
             
-                payer_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
                 receiver_id INTEGER NOT NULL,
+
+                status TEXT NOT NULL,
             
                 amount REAL NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -184,6 +187,14 @@ class App_ORM:
         self._close_DB()
         return row[0] if row else None
 
+    def get_name_by_friend_id(self, friend_id):
+        sql = "SELECT name FROM friends WHERE id=?"
+        self._open_DB()
+        self._execute(sql, friend_id)
+        row = self.cursor.fetchone()
+        self._close_DB()
+        return row[0] if row else None
+
     def friend_exists(self, name):
         sql = "SELECT EXISTS(SELECT 1 FROM friends WHERE name=?)"
         self._open_DB()
@@ -234,9 +245,9 @@ class App_ORM:
 
     # ----------- Transactions ----------- #
     def insert_transaction(self, tx: Transaction):
-        sql = "INSERT INTO transactions (payer_id, receiver_id, amount) VALUES (?, ?, ?)"
+        sql = "INSERT INTO transactions (sender_id, receiver_id, amount, status) VALUES (?, ?, ?, ?)"
         self._open_DB()
-        self._execute(sql, tx.payer_id, tx.receiver_id, tx.amount)
+        self._execute(sql, tx.sender_id, tx.receiver_id, tx.amount, tx.status)
         self._commit()
         self._close_DB()
 

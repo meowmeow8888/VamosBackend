@@ -1,5 +1,6 @@
 from SQL_ORM import *
 import secrets
+from notification_sender import NotificationBuilder
 
 
 def get_highers(id, ids):
@@ -38,13 +39,12 @@ def get_friends(id):
     return friends_of
 
 
-def handle_transaction(tx: Transaction):
+def handle_create_transaction(tx: Transaction):
     db = App_ORM()
     db.insert_transaction(tx)
-    if tx.payer_id > tx.receiver_id:
-        db.update_balance(tx.receiver_id, tx.payer_id, tx.amount)
-    else:
-        db.update_balance(tx.payer_id, tx.receiver_id, -tx.amount)
+    sender_name = db.get_name_by_friend_id(tx.sender_id)
+    NotificationBuilder().with_user_id(
+        tx.receiver_id).transaction_received(sender_name).build().send()
 
 
 def handle_nickname(nickname: Nickname):
