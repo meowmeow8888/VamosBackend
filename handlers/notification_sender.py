@@ -37,4 +37,4 @@ class NotificationBuilder:
         return self.__notification
 
 
-NotificationBuilder().with_user_id(2).alarm().build().send()
+# NotificationBuilder().with_user_id(2).alarm().build().send()
