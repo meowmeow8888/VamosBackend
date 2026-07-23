@@ -13,7 +13,7 @@ from firebase_admin import messaging, credentials
 from firebase_admin.exceptions import FirebaseError
 
 
-class MeRequest(BaseModel):
+class TokenPayload(BaseModel):
     token: str
 
 
@@ -94,31 +94,43 @@ def api_logout(session_id: str | None = Cookie(default=None)):
 
 
 @app.post("/api/me")
-def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
+def api_me(session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+    return {"id": id}
+
+
+@app.post("/api/device-token")
+def api_device_token(token: TokenPayload, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
 
     print(f"DEBUG: Received token: '{token.token}'")
-    print(f"DEBUG: Token type: {type(token.token)}")
 
     if not token.token:
         print("error: No FCM token provided")
-        # return {"error": "No FCM token provided"}
+        raise HTTPException(status_code=400, detail="No FCM token provided")
 
     try:
         response = messaging.subscribe_to_topic(
             [token.token], user_id_to_topic(id))
         response2 = messaging.subscribe_to_topic([token.token], "all")
 
+        if response.success_count > 0:
+            print(f"Subscribed user {id} to personal topic successfully")
         if response.failure_count > 0:
-            print(f"Failed to subscribe: {response.errors[0].reason}")
+            print(
+                f"Failed to subscribe to personal topic: {response.errors[0].reason}")
+
+        if response2.success_count > 0:
+            print("Subscribed to 'all' successfully")
         if response2.failure_count > 0:
-            print(f"Failed to subscribe: {response.errors[0].reason}")
+            print(
+                f"Failed to subscribe to 'all': {response2.errors[0].reason}")
+
+        return {}
 
     except FirebaseError as e:
         print(f"Firebase Error: {e}")
-        # return {"error": str(e)}
-
-    return {"id": id}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/friends")
