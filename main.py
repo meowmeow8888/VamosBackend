@@ -18,7 +18,6 @@ class MeRequest(BaseModel):
 
 
 class TransactionRequest(BaseModel):
-    senderId: int
     receiverId: int
     amount: float
 
@@ -102,7 +101,8 @@ def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
     print(f"DEBUG: Token type: {type(token.token)}")
 
     if not token.token:
-        return {"error": "No FCM token provided"}
+        print("error: No FCM token provided")
+        # return {"error": "No FCM token provided"}
 
     try:
         response = messaging.subscribe_to_topic(
@@ -116,7 +116,7 @@ def api_me(token: MeRequest, session_id: str | None = Cookie(default=None)):
 
     except FirebaseError as e:
         print(f"Firebase Error: {e}")
-        return {"error": str(e)}
+        # return {"error": str(e)}
 
     return {"id": id}
 
@@ -132,11 +132,12 @@ def api_friends(session_id: str | None = Cookie(default=None)):
 @app.post("/api/transactions")
 def api_transactions(tx: TransactionRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
+    print(f"from: {id}, to: {tx.receiverId}, amount: {tx.amount}")
 
     if tx.amount > 0:
-        transaction = Transaction(0, tx.receiverId, tx.senderId, tx.amount)
+        transaction = Transaction(0, tx.receiverId, id, tx.amount)
     else:
-        transaction = Transaction(0, tx.senderId, tx.receiverId, -tx.amount)
+        transaction = Transaction(0, id, tx.receiverId, -tx.amount)
     handle_transaction(transaction)
     return {}
 
