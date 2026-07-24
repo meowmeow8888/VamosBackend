@@ -96,9 +96,9 @@ class App_ORM:
                 sender_id INTEGER NOT NULL,
                 receiver_id INTEGER NOT NULL,
 
-                status TEXT NOT NULL,
-            
                 amount REAL NOT NULL,
+            
+                status TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             
                 FOREIGN KEY (sender_id) REFERENCES friends(id),
