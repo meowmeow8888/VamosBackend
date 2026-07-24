@@ -29,6 +29,16 @@ class NotificationBuilder:
         self.__notification.body = f"{sender_name} has sent you a new transaction, open the app to accept it"
         return self
 
+    def transaction_declined(self, name) -> 'NotificationBuilder':
+        self.__notification.title = "Transaction Declined"
+        self.__notification.body = f"{name} has declined your transaction, open the app for more information"
+        return self
+
+    def transaction_accepted(self, name) -> 'NotificationBuilder':
+        self.__notification.title = "Transaction Accepted"
+        self.__notification.body = f"{name} has accepted your transaction, open the app for more information"
+        return self
+
     def with_user_id(self, user_id) -> 'NotificationBuilder':
         self.__notification.user_id = user_id
         return self

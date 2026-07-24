@@ -17,9 +17,13 @@ class TokenPayload(BaseModel):
     token: str
 
 
-class TransactionRequest(BaseModel):
+class CreateTransactionRequest(BaseModel):
     receiverId: int
     amount: float
+
+
+class TransactionId(BaseModel):
+    txId: int
 
 
 class NicknameRequest(BaseModel):
@@ -41,6 +45,7 @@ def convert_cookie(session_id):
     if not id:
         raise HTTPException(status_code=401)
     return id
+
 
 firebase_creds = json.loads(os.environ.get("FIREBASE_CREDENTIALS"))
 cred = credentials.Certificate(firebase_creds)
@@ -141,12 +146,43 @@ def api_friends(session_id: str | None = Cookie(default=None)):
 
 
 @app.post("/api/create-transaction")
-def api_transactions(tx: TransactionRequest, session_id: str | None = Cookie(default=None)):
+def api_transactions(tx: CreateTransactionRequest, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
     print(f"from: {id}, to: {tx.receiverId}, amount: {tx.amount}")
     transaction = Transaction(0, id, tx.receiverId, tx.amount)
     handle_create_transaction(transaction)
     return {}
+
+
+@app.post("/api/accept-transaction")
+def api_accept_transaction(tx_id: TransactionId, session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
+    accept_transaction(id, tx_id.txId)
+    return {}
+
+
+@app.post("/api/decline-transaction")
+def api_decline_transaction(tx_id: TransactionId, session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
+    decline_transaction(id, tx_id.txId)
+    return {}
+
+
+@app.get("/api/pending-transactions")
+def api_pending_transactions(session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
+    pending = get_pending(id)
+    return {"pending": pending}
+
+
+@app.get("/api/transactions-history")
+def api_transactions_history(session_id: str | None = Cookie(default=None)):
+    id = convert_cookie(session_id)
+
+    history = get_tx_history(id)
 
 
 @app.post("/api/nickname")

@@ -50,17 +50,6 @@ class Nickname:
         self.nickname = nickname
 
 
-class Friend_of:
-    def __init__(self, friend: Friend, balance: Balance, nickname: Nickname):
-        self.id = friend.friend_id
-        self.name = friend.name
-        self.balance = balance.balance if self.id == balance.second_id else -balance.balance
-        self.nickname = nickname.nickname
-
-    def __repr__(self):
-        return f"{self.__dict__}"
-
-
 class Session:
     def __init__(self, session_id, friend_id):
         self.session_id = session_id
@@ -251,7 +240,39 @@ class App_ORM:
         self._commit()
         self._close_DB()
 
+    def get_transaction_by_id(self, tx_id):
+        sql = "SELECT * FROM transactions WHERE id=?"
+        self._open_DB()
+        self._execute(sql, tx_id)
+        row = self.cursor.fetchone()
+        self._close_DB()
+        return Transaction(*row) if row else None
+
+    def get_pending_transactions(self, receiver_id):
+        sql = "SELECT * FROM transactions WHERE receiver_id=? AND status=?"
+        self._open_DB()
+        self._execute(sql, receiver_id, "PENDING")
+        rows = self.cursor.fetchall()
+        self._close_DB()
+        return [Transaction(*row) for row in rows]
+
+    def change_status(self, tx_id, new_status):
+        sql = "UPDATE transactions SET status=? WHERE id=?"
+        self._open_DB()
+        self._execute(sql, new_status, tx_id)
+        self._commit()
+        self._close_DB()
+
+    def get_transactions_for(self, id):
+        sql = "SELECT * FROM transactions WHERE sender_id=? OR receiver_id=?"
+        self._open_DB()
+        self._execute(sql, id, id)
+        rows = self.cursor.fetchall()
+        self._close_DB()
+        return [Transaction(*row) for row in rows]
+
     # ----------- Nicknames ----------- #
+
     def insert_nickname(self, nickname: Nickname):
         sql = "INSERT INTO nicknames (nicker_id, nicked_id, nickname) VALUES (?, ?, ?)"
         self._open_DB()
