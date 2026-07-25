@@ -61,14 +61,6 @@ def get_friends(id):
     return friends_of
 
 
-def handle_create_transaction(tx: Transaction):
-    db = App_ORM()
-    db.insert_transaction(tx)
-    sender_name = db.get_name_by_friend_id(tx.sender_id)
-    NotificationBuilder().with_user_id(
-        tx.receiver_id).transaction_received(sender_name).build().send()
-
-
 def handle_nickname(nickname: Nickname):
     db = App_ORM()
     if db.nickname_exists(nickname.nicker_id, nickname.nicked_id):
@@ -109,11 +101,19 @@ def me(session_id):
     return db.get_friend_id_from_session(session_id)
 
 
+def handle_create_transaction(tx: Transaction):
+    db = App_ORM()
+    db.insert_transaction(tx)
+    sender_name = db.get_name_by_friend_id(tx.sender_id)
+    NotificationBuilder().with_user_id(
+        tx.receiver_id).transaction_received(sender_name).build().send()
+
+
 def get_pending(id):
     db = App_ORM()
     transactions = db.get_pending_transactions(id)
     pending = [PendingTransaction(tx.id, db.get_name_by_friend_id(
-        tx.sender_id), tx.amount, tx.time) for tx in transactions]
+        tx.sender_id), -tx.amount, tx.time) for tx in transactions]
     return pending
 
 
