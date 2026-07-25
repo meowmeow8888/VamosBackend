@@ -157,6 +157,7 @@ def api_transactions(tx: CreateTransactionRequest, session_id: str | None = Cook
 @app.post("/api/accept-transaction")
 def api_accept_transaction(tx_id: TransactionId, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
+    print(f"user: {id} accepted: {tx_id.txId}")
 
     accept_transaction(id, tx_id.txId)
     return {}
@@ -165,6 +166,7 @@ def api_accept_transaction(tx_id: TransactionId, session_id: str | None = Cookie
 @app.post("/api/decline-transaction")
 def api_decline_transaction(tx_id: TransactionId, session_id: str | None = Cookie(default=None)):
     id = convert_cookie(session_id)
+    print(f"user: {id} declined: {tx_id.txId}")
 
     decline_transaction(id, tx_id.txId)
     return {}

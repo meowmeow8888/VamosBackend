@@ -121,6 +121,7 @@ def accept_transaction(id, tx_id):
     db = App_ORM()
     db.change_status(tx_id, "ACCEPTED")
     tx = db.get_transaction_by_id(tx_id)
+    print(f"tx: {tx}")
     db.update_balance(tx.sender_id, tx.receiver_id, tx.amount)
     name = db.get_name_by_friend_id(id)
     NotificationBuilder().with_user_id(id).transaction_accepted(name).build().send()
